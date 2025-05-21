@@ -5,8 +5,6 @@ Root Finder for Arbitrary-Degree Polynomials
 Implements Newton-Raphson method using Horner’s scheme.
 No external modules used.
 
-@Authour: fa19984
-
 """
 
 # Evaluate both P(x) and P'(x) using Horner's method
