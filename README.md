@@ -29,7 +29,9 @@ Features
 • Works with polynomials of any order
 • Finds real roots
 • Requires no imports
-• Uses tolerance-based convergenceUsage Example
+• Uses tolerance-based convergence
+
+Usage Example
 
 The following polynomial is used to validate the program:
 x3−6x2+11x−6
