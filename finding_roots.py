@@ -2,99 +2,92 @@
 # -*- coding: utf-8 -*-
 """
 Root Finder for Arbitrary-Degree Polynomials
-Implements Newton-Raphson method using Horner’s scheme.
+Implementation of the Newton-Raphson method using Horner’s scheme.
 No external modules used.
 
 """
 
-# Evaluate both P(x) and P'(x) using Horner's method
-def horner(poly, x):
+def evaluate_polynomial_and_derivative(coefficients, x_val):
     """
-    Evaluates a polynomial and its derivative at x using Horner's method.
-    :param poly: List of polynomial coefficients [a0, a1, ..., an]
-    :param x: Value at which to evaluate
-    :return: Tuple (P(x), P'(x))
+    Evaluate polynomial and its derivative at a given point using Horner's method.
     """
-    n = len(poly)
-    b = poly[0]  # P(x)
-    c = poly[0]  # P'(x)
+    n = len(coefficients)
+    poly_val = coefficients[0]
+    deriv_val = coefficients[0]
 
     for i in range(1, n):
-        b = b * x + poly[i]
+        poly_val = poly_val * x_val + coefficients[i]
         if i < n - 1:
-            c = c * x + b
+            deriv_val = deriv_val * x_val + poly_val
 
-    return b, c
+    return poly_val, deriv_val
 
-# Use Newton-Raphson method to find a single root
-def newton_raphson(poly, x0, tol=1e-10, max_iter=100):
-    """
-    Applies Newton-Raphson method to find one root.
-    :param poly: List of polynomial coefficients
-    :param x0: Initial guess
-    :param tol: Convergence tolerance
-    :param max_iter: Maximum number of iterations
-    :return: Root (float) or None if it fails to converge
-    """
-    for _ in range(max_iter):
-        fx, dfx = horner(poly, x0)
-        if dfx == 0:
-            return None  # Derivative is zero, can't proceed
-        x1 = x0 - fx / dfx
-        if abs(x1 - x0) < tol:
-            return x1  # Root found
-        x0 = x1
-    return None  # Failed to converge
 
-# Deflate the polynomial after finding a root
-def deflate(poly, root):
+def locate_root(coefficients, starting_points, tolerance=1e-10, max_steps=100):
     """
-    Deflates the polynomial by dividing it by (x - root).
-    :param poly: Original polynomial
-    :param root: Root found
-    :return: Deflated polynomial
+    Apply Newton-Raphson method to find a root using multiple initial guesses.
     """
-    n = len(poly)
-    new_poly = [poly[0]]  # Start with leading coefficient
+    for start in starting_points:
+        current = start
+        for _ in range(max_steps):
+            f_val, df_val = evaluate_polynomial_and_derivative(coefficients, current)
+            if df_val == 0:
+                break
+            next_val = current - f_val / df_val
+            if abs(next_val - current) < tolerance:
+                return next_val
+            current = next_val
+    return None
 
-    for i in range(1, n - 1):
-        new_poly.append(poly[i] + new_poly[-1] * root)
 
-    return new_poly
+def reduce_polynomial(coefficients, root_found):
+    """
+    Use synthetic division to deflate polynomial by (x - root).
+    """
+    result = [coefficients[0]]
+    for i in range(1, len(coefficients) - 1):
+        result.append(coefficients[i] + result[-1] * root_found)
+    return result
 
-# Find all roots by iteratively applying Newton-Raphson and deflating
-def find_all_roots(poly):
+
+def extract_all_roots(coefficients):
     """
-    Finds all roots of a polynomial by applying Newton-Raphson and deflation.
-    :param poly: Polynomial coefficients
-    :return: List of roots
+    Extract all real roots from a polynomial using iterative deflation.
     """
-    poly = poly[:]  # Copy to avoid changing original
-    roots = []
-    degree = len(poly) - 1
+    roots_collected = []
+    polynomial = coefficients[:]
+    degree = len(polynomial) - 1
+
+    guess_bank = [0.0, 1.0, -1.0, 2.0, -2.0, 3.0, -3.0]
 
     while degree > 0:
-        guess = 0.0
-        root = newton_raphson(poly, guess)
+        root = locate_root(polynomial, guess_bank)
         if root is None:
-            print("Failed to converge on a root.")
             break
-        roots.append(root)
-        poly = deflate(poly, root)
-        degree -= 1
+        rounded_root = round(root, 8)
+        if not any(abs(rounded_root - existing) < 1e-6 for existing in roots_collected):
+            roots_collected.append(rounded_root)
+            polynomial = reduce_polynomial(polynomial, root)
+            degree -= 1
+        else:
+            break
 
-    return roots
+    return roots_collected
 
-# Example usage / test case
-def test():
-    # Polynomial: x^3 - 6x^2 + 11x - 6 = (x-1)(x-2)(x-3)
-    poly = [1, -6, 11, -6]
-    print("Finding roots of:", poly)
-    roots = find_all_roots(poly)
-    print("Roots found:")
-    for r in roots:
-        print(round(r, 6))
 
-# Entry point
-if __name__ == "__main__":
-    test()
+def run_tests():
+    print("Testing custom polynomial root solver:")
+
+    print("\nPolynomial: x^3 - 6x^2 + 11x - 6")
+    poly1 = [1, -6, 11, -6]
+    print("Roots:", extract_all_roots(poly1))
+
+    print("\nPolynomial: x^3 + x^2 - x - 1")
+    poly2 = [1, 1, -1, -1]
+    print("Roots:", extract_all_roots(poly2))
+
+    print("\nPolynomial: x^4 - 10x^2 + 9")
+    poly3 = [1, 0, -10, 0, 9]
+    print("Roots:", extract_all_roots(poly3))
+
+run_tests()
